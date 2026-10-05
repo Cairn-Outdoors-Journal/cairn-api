@@ -1,0 +1,30 @@
+name: Release
+
+# Tag a release (for example v0.1.0) to publish the API contract that cairn-app pins.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  openapi:
+    name: Publish openapi.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"
+
+      - name: Export OpenAPI document
+        run: |
+          uv sync --locked --no-dev
+          uv run --no-dev python scripts/export_openapi.py openapi.json
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" openapi.json --title "$GITHUB_REF_NAME" --generate-notes
